@@ -1,7 +1,6 @@
 use clap::Parser;
-use core::panic;
 use std::{
-    fs::File,
+    fs::{self, File},
     io::{BufRead, BufReader},
     path::PathBuf,
     str::FromStr,
@@ -13,18 +12,37 @@ use rewac_bundler::line_checker::LineChecker;
 fn main() {
     let args = Args::parse();
 
-    let libdir = PathBuf::from_str(&args.libdir)
+    let lib_dir = PathBuf::from_str(&args.libdir)
         .unwrap_or_else(|e| panic!("{e}"))
         .canonicalize()
         .unwrap_or_else(|_| panic!("Not found: {}", args.libdir));
 
-    let file = libdir.join("src").join(&args.libname).with_extension("rs");
+    let mut files = vec![];
 
-    let res = simpify_file(&file);
+    if args.libname.to_lowercase() == "all" {
+        let src_dir = lib_dir.join("src");
+        for file in fs::read_dir(&src_dir).unwrap_or_else(|e| panic!("{e}")) {
+            let file = file.unwrap_or_else(|e| panic!("{e}")).path();
+            if file.file_stem().unwrap() == "lib" {
+                continue;
+            } else {
+                files.push(file);
+            }
+        }
+    } else {
+        let file = lib_dir.join("src").join(&args.libname).with_extension("rs");
+        files.push(file);
+    }
 
-    println!("");
-    println!("#[allow(dead_code)]");
-    println!("{}", res);
+    let mut str = String::new();
+    str += "\n";
+
+    for file in &files {
+        str += "#[allow(dead_code)]\n";
+        str += &simpify_file(file);
+    }
+
+    println!("{str}");
 }
 
 fn simpify_file(file: &PathBuf) -> String {
