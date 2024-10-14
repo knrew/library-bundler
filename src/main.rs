@@ -39,7 +39,10 @@ fn main() {
 
     for file in &files {
         str += "#[allow(dead_code)]\n";
+        str += "mod ";
+        str += &format!("{} {{\n", file.file_stem().unwrap().to_string_lossy());
         str += &simpify_file(file);
+        str += "}\n";
     }
 
     println!("{str}");
@@ -68,6 +71,7 @@ fn simpify_file(file: &PathBuf) -> String {
         } else if checker.parse_cfg_test(&line) {
             break;
         } else if !is_in_comment {
+            str += "    ";
             str += &line;
             str += "\n";
         } else {
