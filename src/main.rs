@@ -1,10 +1,7 @@
 use std::{fs, path::PathBuf};
 
 use clap::Parser;
-use library_bundler::{library_collector::collect_libraries, simplifier::simplify};
-
-// const LIBRARY_DIR: &str = "/home/rew/codes/rewac/";
-// const LIBRARY_NAME: &str = "rewac";
+use library_bundler::{module_collector::collect_modules, simplifier::simplify};
 
 fn main() {
     let args = Args::parse();
@@ -13,7 +10,7 @@ fn main() {
         panic!("failed to read {:?}", args.source_file);
     });
 
-    let libraries = collect_libraries(&source, &args.library_dir, &args.library_name());
+    let modules = collect_modules(&source, &args.library_dir, &args.library_name());
 
     let mut res = String::new();
 
@@ -22,13 +19,16 @@ fn main() {
     res += "#[allow(dead_code)]\n";
     res += &format!("mod {} {{\n", args.library_name());
 
-    for library in &libraries {
+    for module in &modules {
         let filename = args
             .library_dir
             .join("src")
-            .join(&library)
+            .join(&module)
             .with_extension("rs");
-        res += &format!("pub mod {}{{\n{}}}\n", library, simplify(&filename));
+        res += "    ";
+        res += &format!("pub mod {} {{\n", module);
+        res += &simplify(&filename);
+        res += "    }\n";
     }
 
     res += "}";

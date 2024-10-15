@@ -3,33 +3,31 @@ use std::{collections::BTreeSet, fs, path::Path};
 use syn::parse_file;
 
 /// sourceでuseされているクレートのうち，自作ライブラリだけを集める
-pub fn collect_libraries(
+pub fn collect_modules(
     source: &str,
     library_dir: impl AsRef<Path>,
     library_name: &str,
 ) -> Vec<String> {
     let uses = collect_uses(&source);
 
-    let mut libraries = BTreeSet::new();
-    // let mut is_all = false;
+    let mut modules = BTreeSet::new();
 
     for elem in uses
         .iter()
         .filter(|elem| !elem.is_empty() && &elem[0] == library_name)
     {
         if elem.len() == 1 || elem[1] == "*" {
-            // is_all = true;
-            // break;
+            continue;
         }
 
         let mut stk = vec![elem[1].clone()];
 
         while let Some(lib) = stk.pop() {
-            if libraries.contains(&lib) {
+            if modules.contains(&lib) {
                 continue;
             }
 
-            libraries.insert(lib.clone());
+            modules.insert(lib.clone());
 
             let path = library_dir
                 .as_ref()
@@ -51,7 +49,7 @@ pub fn collect_libraries(
         }
     }
 
-    libraries.into_iter().collect()
+    modules.into_iter().collect()
 }
 
 /// useされているクレートを集める

@@ -7,8 +7,13 @@
 この際，コメントやテストは削除する．
 
 ## install
-このリポジトリをクローンして，
 ```sh
+cargo install --git https://github.com/knrew/library-bundler
+```
+または
+```sh
+git clone https://github.com/knrew/library-bundler
+cd library-bundler
 cargo install --path .
 ```
 
@@ -27,12 +32,11 @@ library-bundler -l <library_dir> src/main.rs > submission.rs
 
 ## 注意
 ライブラリが不十分なので，ライブラリ側で以下に注意する
-- `src`の直下にしかライブラリを置かないようにする
-    - `src/poyo/mod.rs`みたいなの禁止
-- コメントは`//`または`///`のみとする
-    - `/* ~ */`はバグる可能性あり
-- 行途中から始まるコメントは削除されない
-    - `let x  = 5; // poyopoyo`みたいなやつ
-- testは`#[cfg(test)]`からはじめ，test以降にコードを置かないようにする
-    - `#[cfg(test)]`以降は無視する設定になっている
-- `mylibrary/*`のように`*`でライブラリすべてをインポートしようとしないようにする
+- `src`の直下のライブラリのみ有効
+    - `src/poyo/mod.rs`みたいなやつは非対応
+- ブロックコメント(`/* ~ */`)を使う場合はその行にコメント出ないコードを書いてはいけない
+    - `let x = 4; /* poyo */`みたいなやつは非対応
+- テストは`#[cfg(test)]`からはじめる．テストコード以降に通常のコードを置かないようにする
+    - `#[cfg(test)]`以降のコードはすべて無視する設定になっている
+- ライブラリはuseをつかってインポートすること
+- `mylibrary/*`のように`*`でライブラリすべてをインポートするコードには非対応

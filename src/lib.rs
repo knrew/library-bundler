@@ -1,2 +1,2 @@
-pub mod library_collector;
+pub mod module_collector;
 pub mod simplifier;
