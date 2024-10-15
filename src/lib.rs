@@ -1,1 +1,2 @@
-pub mod line_checker;
+pub mod library_collector;
+pub mod simplifier;
