@@ -40,3 +40,4 @@ library-bundler -l <library_dir> src/main.rs > submission.rs
     - `#[cfg(test)]`以降のコードはすべて無視する設定になっている
 - ライブラリはuseをつかってインポートすること
 - `mylibrary/*`のように`*`でライブラリすべてをインポートするコードには非対応
+- `super::`ではなく`crate::`を使う．
