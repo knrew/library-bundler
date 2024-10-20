@@ -7,7 +7,7 @@ use std::{
 use lazy_static::lazy_static;
 use regex::Regex;
 
-pub fn simplify(file: impl AsRef<Path>) -> String {
+pub fn simplify(file: impl AsRef<Path>, num_indent: usize) -> String {
     let reader =
         BufReader::new(File::open(file).unwrap_or_else(|_| panic!("could not open file.")));
 
@@ -47,7 +47,9 @@ pub fn simplify(file: impl AsRef<Path>) -> String {
             continue;
         }
 
-        str += "        ";
+        for _ in 0..num_indent {
+            str += "    ";
+        }
         str += &line.replace("crate", "super");
         str += "\n";
     }

@@ -1,59 +1,68 @@
-use std::{collections::BTreeSet, fs, path::Path};
+use std::{
+    collections::BTreeSet,
+    fs,
+    path::{Path, PathBuf},
+};
 
 use syn::parse_file;
 
-/// sourceでuseされているクレートのうち，自作ライブラリだけを集める
-pub fn collect_modules(
+/// 使用されているライブラリ(が定義されているファイル)を集める
+/// まずsource内のuseのうちlibrary_nameで指定されているモジュールを集め，
+/// 再帰的にそのファイル内で使用されているモジュールを集める
+pub fn collect_module_files(
     source: &str,
     library_dir: impl AsRef<Path>,
     library_name: &str,
-) -> Vec<String> {
+) -> Vec<PathBuf> {
     let uses = collect_uses(&source);
 
-    let mut modules = BTreeSet::new();
+    let mut files = BTreeSet::new();
 
-    for elem in uses
+    for module in uses
         .iter()
-        .filter(|elem| !elem.is_empty() && &elem[0] == library_name)
+        .filter(|module| !module.is_empty() && &module[0] == library_name)
     {
-        if elem.len() == 1 || elem[1] == "*" {
-            continue;
-        }
-
-        let mut stk = vec![elem[1].clone()];
-
-        while let Some(lib) = stk.pop() {
-            if modules.contains(&lib) {
-                continue;
-            }
-
-            modules.insert(lib.clone());
-
-            let path = library_dir
-                .as_ref()
-                .join("src")
-                .join(&lib)
-                .with_extension("rs");
-
-            if !path.exists() {
-                continue;
-            }
-
-            let s = fs::read_to_string(&path).unwrap();
-            for elem in collect_uses(&s)
-                .iter()
-                .filter(|elem| !elem.is_empty() && &elem[0] == "crate")
-            {
-                stk.push(elem[1].clone())
+        let mut file = library_dir.as_ref().join("src");
+        for s in module.iter().skip(1) {
+            file = file.join(s);
+            if file.with_extension("rs").exists() {
+                let file = file.with_extension("rs").canonicalize().unwrap();
+                files.insert(file);
+                break;
             }
         }
     }
 
-    modules.into_iter().collect()
+    let mut res = vec![];
+
+    while let Some(file) = files.pop_first() {
+        let source = fs::read_to_string(&file).unwrap();
+        for module in collect_uses(&source)
+            .iter()
+            .filter(|elem| !elem.is_empty() && &elem[0] == "crate")
+        {
+            let mut file = library_dir.as_ref().join("src");
+            for s in module.iter().skip(1) {
+                file = file.join(s);
+                if file.with_extension("rs").exists() {
+                    let file = file.with_extension("rs").canonicalize().unwrap();
+                    files.insert(file);
+                    break;
+                }
+            }
+        }
+
+        res.push(file);
+    }
+
+    res.sort_unstable();
+    res.dedup();
+
+    res
 }
 
-/// useされているクレートを集める
-/// 例: `std::collections::HashMap`は`["std", "collections", "HashMap"]`となる
+/// sourceで指定されている文字列の中からuseされているモジュールを集める
+/// 例: `std::collections::HashMap`は`["std", "collections", "HashMap"]`という形で格納される
 fn collect_uses(source: &str) -> Vec<Vec<String>> {
     fn dfs(tree: &syn::UseTree, items: &mut Vec<String>, uses: &mut Vec<Vec<String>>) {
         match tree {

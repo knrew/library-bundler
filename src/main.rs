@@ -1,7 +1,7 @@
-use std::{fs, path::PathBuf};
+use std::{collections::BTreeMap, fs, path::PathBuf};
 
 use clap::Parser;
-use library_bundler::{module_collector::collect_modules, simplifier::simplify};
+use library_bundler::{module_collector::collect_module_files, simplifier::simplify};
 
 fn main() {
     let args = Args::parse();
@@ -10,31 +10,69 @@ fn main() {
         panic!("failed to read {:?}", args.source_file);
     });
 
-    let modules = collect_modules(&source, &args.library_dir, &args.library_name());
+    let files = collect_module_files(&source, &args.library_dir, &args.library_name());
 
     let mut res = String::new();
 
     res += &source;
 
-    if !modules.is_empty() {
-        res += "\n";
-        res += "#[allow(dead_code)]\n";
-        res += &format!("mod {} {{\n", args.library_name());
+    if files.is_empty() {
+        println!("{}", res);
+        return;
+    }
 
-        for module in &modules {
-            let filename = args
-                .library_dir
-                .join("src")
-                .join(&module)
-                .with_extension("rs");
-            res += "    ";
+    let mut mp = BTreeMap::new();
+
+    for path in &files {
+        let module_names = path
+            .parent()
+            .unwrap()
+            .strip_prefix(&args.library_dir.join("src"))
+            .unwrap()
+            .iter()
+            .map(|m| m.to_str().unwrap().to_string())
+            .collect::<Vec<_>>();
+
+        mp.entry(module_names).or_insert(vec![]).push(path);
+    }
+
+    res += "\n";
+    res += "#[allow(dead_code)]\n";
+    res += &format!("mod {} {{\n", args.library_name());
+
+    for (parent_modules, paths) in &mp {
+        for (d, module) in parent_modules.iter().enumerate() {
+            for _ in 0..d + 1 {
+                res += "    ";
+            }
             res += &format!("pub mod {} {{\n", module);
-            res += &simplify(&filename);
-            res += "    }\n";
         }
 
-        res += "}";
+        for path in paths {
+            for _ in 0..parent_modules.len() + 1 {
+                res += "    ";
+            }
+            res += &format!(
+                "pub mod {} {{\n",
+                path.file_stem().unwrap().to_str().unwrap()
+            );
+
+            res += &simplify(&path, parent_modules.len() + 2);
+            for _ in 0..parent_modules.len() + 1 {
+                res += "    ";
+            }
+            res += "}\n";
+        }
+
+        for d in (0..parent_modules.len()).rev() {
+            for _ in 0..d + 1 {
+                res += "    ";
+            }
+            res += "}\n";
+        }
     }
+
+    res += "}";
 
     println!("{}", res);
 }
