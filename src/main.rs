@@ -41,8 +41,8 @@ fn main() {
     res += &format!("mod {} {{\n", args.library_name());
 
     for (parent_modules, paths) in &mp {
-        for (d, module) in parent_modules.iter().enumerate() {
-            for _ in 0..d + 1 {
+        for (depth, module) in parent_modules.iter().enumerate() {
+            for _ in 0..depth + 1 {
                 res += "    ";
             }
             res += &format!("pub mod {} {{\n", module);
@@ -58,6 +58,7 @@ fn main() {
             );
 
             res += &simplify(&path, parent_modules.len() + 2);
+
             for _ in 0..parent_modules.len() + 1 {
                 res += "    ";
             }

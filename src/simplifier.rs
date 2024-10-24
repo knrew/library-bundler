@@ -4,62 +4,51 @@ use std::{
     path::Path,
 };
 
-use lazy_static::lazy_static;
-use regex::Regex;
-
 pub fn simplify(file: impl AsRef<Path>, num_indent: usize) -> String {
     let reader =
         BufReader::new(File::open(file).unwrap_or_else(|_| panic!("could not open file.")));
 
-    let mut is_in_comment = false;
+    let mut lines = reader
+        .lines()
+        .map(|line| line.unwrap())
+        .collect::<Vec<String>>();
 
-    let mut str = String::new();
+    {
+        let mut is_in_comment = false;
+        for line in &mut lines {
+            if is_in_comment {
+                if line.find("*/").is_some() {
+                    is_in_comment = false;
+                }
+                line.clear();
+            } else {
+                if let Some(_) = line.find("/*") {
+                    is_in_comment = true;
+                    line.clear();
+                }
 
-    for line in reader.lines() {
-        let mut line = line.unwrap_or_else(|e| panic!("{e}"));
-        if line.is_empty() {
-            continue;
+                if let Some(pos) = line.find("//") {
+                    *line = line[..pos].to_string();
+                }
+            }
         }
+    }
 
-        if is_in_comment && line.find("*/").is_some() {
-            is_in_comment = false;
-            continue;
-        }
+    lines = lines
+        .into_iter()
+        .take_while(|line| line.find("#[test]").is_none() && line.find("#[cfg(test)]").is_none())
+        .filter(|line| !line.trim().is_empty())
+        .collect::<Vec<_>>();
 
-        if is_in_comment {
-            continue;
-        }
+    let mut res = String::new();
 
-        if is_test_attribute(&line) {
-            break;
-        }
-
-        if line.find("/*").is_some() {
-            is_in_comment = true;
-            continue;
-        }
-
-        if let Some(pos) = line.find("//") {
-            line = line[..pos].to_string();
-        }
-
-        if line.trim().is_empty() {
-            continue;
-        }
-
+    for line in &mut lines {
         for _ in 0..num_indent {
-            str += "    ";
+            res += "    ";
         }
-        str += &line.replace("crate", "super");
-        str += "\n";
+        res += &line.replace("crate", "super");
+        res += "\n";
     }
 
-    str
-}
-
-fn is_test_attribute(line: &str) -> bool {
-    lazy_static! {
-        static ref re: Regex = Regex::new(r#"^\s*#\s*\[\s*cfg\s*\(\s*test\s*\)\s*\]\s*"#).unwrap();
-    }
-    re.is_match(line)
+    res
 }
