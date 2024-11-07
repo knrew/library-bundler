@@ -57,7 +57,7 @@ fn main() {
                 path.file_stem().unwrap().to_str().unwrap()
             );
 
-            res += &simplify(&path, parent_modules.len() + 2);
+            res += &simplify(&path, &args.library_name(), parent_modules.len() + 2);
 
             for _ in 0..parent_modules.len() + 1 {
                 res += "    ";

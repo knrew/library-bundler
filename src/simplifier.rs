@@ -4,7 +4,7 @@ use std::{
     path::Path,
 };
 
-pub fn simplify(file: impl AsRef<Path>, num_indent: usize) -> String {
+pub fn simplify(file: impl AsRef<Path>, library_name: &str, num_indent: usize) -> String {
     let reader =
         BufReader::new(File::open(file).unwrap_or_else(|_| panic!("could not open file.")));
 
@@ -46,7 +46,7 @@ pub fn simplify(file: impl AsRef<Path>, num_indent: usize) -> String {
         for _ in 0..num_indent {
             res += "    ";
         }
-        res += &line.replace("crate", "super");
+        res += &line.replace("crate", &format!("crate::{}", library_name));
         res += "\n";
     }
 
