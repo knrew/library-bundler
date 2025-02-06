@@ -4,9 +4,14 @@ use std::{
     path::Path,
 };
 
-pub fn simplify(file: impl AsRef<Path>, library_name: &str, num_indent: usize) -> String {
-    let reader =
-        BufReader::new(File::open(file).unwrap_or_else(|_| panic!("could not open file.")));
+/// ライブラリファイルの
+/// - コメント削除
+/// - テスト削除
+/// - 空行削除
+/// - インデント挿入
+/// を行う
+pub fn simplify(file: impl AsRef<Path>, library_name: &str, indent_depth: usize) -> String {
+    let reader = BufReader::new(File::open(file).expect("could not open file."));
 
     let mut lines = reader
         .lines()
@@ -43,7 +48,7 @@ pub fn simplify(file: impl AsRef<Path>, library_name: &str, num_indent: usize) -
     let mut res = String::new();
 
     for line in &mut lines {
-        for _ in 0..num_indent {
+        for _ in 0..indent_depth {
             res += "    ";
         }
         res += &line.replace("crate", &format!("crate::{}", library_name));
