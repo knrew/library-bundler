@@ -5,7 +5,12 @@ use library_bundler::bundle_library;
 
 fn main() {
     let args = Args::parse();
-    let bundled_source = bundle_library(&args.source_file, &args.library_dir, &args.library_name());
+    let bundled_source = bundle_library(
+        &args.source_file,
+        &args.library_dir,
+        &args.library_name(),
+        !args.disabled_simplification,
+    );
     print!("{}", bundled_source);
 }
 
@@ -16,6 +21,9 @@ struct Args {
 
     #[arg(short = 'n', long = "name")]
     library_name: Option<String>,
+
+    #[arg(long)]
+    disabled_simplification: bool,
 
     source_file: PathBuf,
 }

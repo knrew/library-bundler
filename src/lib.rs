@@ -15,6 +15,7 @@ pub fn bundle_library(
     source_path: impl AsRef<Path>,
     library_dir: impl AsRef<Path>,
     library_name: &str,
+    enabled_simplification: bool,
 ) -> String {
     let mut res = fs::read_to_string(&source_path).expect("failed to read file.");
 
@@ -30,12 +31,12 @@ pub fn bundle_library(
     for u in &uses {
         tree.insert(&u);
     }
-    res += &bundle(&tree, library_name);
+    res += &bundle(&tree, library_name, enabled_simplification);
 
     res
 }
 
-fn bundle(tree: &ModuleTree, library_name: &str) -> String {
+fn bundle(tree: &ModuleTree, library_name: &str, enabled_simplification: bool) -> String {
     fn dfs(
         library_name: &str,
         nodes: &[Node],
@@ -43,6 +44,7 @@ fn bundle(tree: &ModuleTree, library_name: &str) -> String {
         path: &PathBuf,
         i: usize,
         depth: usize,
+        enabled_simplification: bool,
     ) -> String {
         let mut s = String::new();
 
@@ -62,7 +64,12 @@ fn bundle(tree: &ModuleTree, library_name: &str) -> String {
 
         if nodes[i].child_ids.is_empty() {
             let path = path.with_extension("rs");
-            write!(s, "{}", simplify(&path, library_name, depth + 1)).unwrap();
+            write!(
+                s,
+                "{}",
+                simplify(&path, library_name, depth + 1, enabled_simplification)
+            )
+            .unwrap();
         } else {
             for &child_id in &nodes[i].child_ids {
                 if bundled[child_id] {
@@ -71,7 +78,15 @@ fn bundle(tree: &ModuleTree, library_name: &str) -> String {
                 write!(
                     s,
                     "{}",
-                    dfs(library_name, nodes, bundled, &path, child_id, depth + 1)
+                    dfs(
+                        library_name,
+                        nodes,
+                        bundled,
+                        &path,
+                        child_id,
+                        depth + 1,
+                        enabled_simplification
+                    )
                 )
                 .unwrap();
             }
@@ -94,6 +109,7 @@ fn bundle(tree: &ModuleTree, library_name: &str) -> String {
         &PathBuf::new(),
         0,
         0,
+        enabled_simplification,
     );
 
     res
