@@ -1,25 +1,17 @@
-use std::{
-    collections::BTreeMap,
-    fmt::Write,
-    fs,
-    path::{Path, PathBuf},
-};
+use std::{collections::BTreeMap, fmt::Write, fs, path::PathBuf};
 
+pub mod bundling_option;
 pub mod module_collector;
 pub mod simplifier;
 
+use bundling_option::BundlingOption;
 use module_collector::collect_library_uses;
 use simplifier::simplify;
 
-pub fn bundle_library(
-    source_path: impl AsRef<Path>,
-    library_dir: impl AsRef<Path>,
-    library_name: &str,
-    enabled_simplification: bool,
-) -> String {
-    let mut res = fs::read_to_string(&source_path).expect("failed to read file.");
+pub fn bundle(option: &BundlingOption) -> String {
+    let mut res = fs::read_to_string(&option.souce_file).expect("failed to read file.");
 
-    let uses = collect_library_uses(&source_path, &library_dir, &library_name);
+    let uses = collect_library_uses(&option);
 
     if uses.is_empty() {
         return res;
@@ -27,92 +19,85 @@ pub fn bundle_library(
 
     res += "\n";
 
-    let mut tree = ModuleTree::new(Node::new(library_dir.as_ref().join("src")));
+    let mut tree = ModuleTree::new(Node::new(option.library_dir.join("src")));
     for u in &uses {
         tree.insert(&u);
     }
-    res += &bundle(&tree, library_name, enabled_simplification);
+
+    if let Some(comment) = &option.comment {
+        for line in comment.lines() {
+            write!(&mut res, "/// {}\n", line).unwrap();
+        }
+    }
+
+    write!(
+        &mut res,
+        "#[allow(unused)]\n{}",
+        bundle_dfs(
+            &option,
+            &tree.nodes,
+            &mut vec![false; tree.nodes.len()],
+            &PathBuf::new(),
+            0,
+            0,
+        )
+    )
+    .unwrap();
 
     res
 }
 
-fn bundle(tree: &ModuleTree, library_name: &str, enabled_simplification: bool) -> String {
-    fn dfs(
-        library_name: &str,
-        nodes: &[Node],
-        bundled: &mut [bool],
-        path: &PathBuf,
-        i: usize,
-        depth: usize,
-        enabled_simplification: bool,
-    ) -> String {
-        let mut s = String::new();
+fn bundle_dfs(
+    option: &BundlingOption,
+    nodes: &[Node],
+    bundled: &mut [bool],
+    path: &PathBuf,
+    i: usize,
+    depth: usize,
+) -> String {
+    let mut s = String::new();
 
-        bundled[i] = true;
+    bundled[i] = true;
 
-        let path = path.join(&nodes[i].path);
+    let path = path.join(&nodes[i].path);
 
-        let mod_name = if i == 0 {
-            library_name
+    for _ in 0..depth {
+        write!(s, "    ").unwrap();
+    }
+    writeln!(
+        s,
+        "pub mod {} {{",
+        if i == 0 {
+            &option.library_name
         } else {
             nodes[i].path.to_str().unwrap()
-        };
-        for _ in 0..depth {
-            write!(s, "    ").unwrap();
         }
-        writeln!(s, "pub mod {} {{", mod_name).unwrap();
+    )
+    .unwrap();
 
-        if nodes[i].child_ids.is_empty() {
-            let path = path.with_extension("rs");
+    if nodes[i].child_ids.is_empty() {
+        let path = path.with_extension("rs");
+        write!(s, "{}", simplify(&option, &path, depth + 1)).unwrap();
+    } else {
+        for &child_id in &nodes[i].child_ids {
+            if bundled[child_id] {
+                continue;
+            }
             write!(
                 s,
                 "{}",
-                simplify(&path, library_name, depth + 1, enabled_simplification)
+                bundle_dfs(option, nodes, bundled, &path, child_id, depth + 1,)
             )
             .unwrap();
-        } else {
-            for &child_id in &nodes[i].child_ids {
-                if bundled[child_id] {
-                    continue;
-                }
-                write!(
-                    s,
-                    "{}",
-                    dfs(
-                        library_name,
-                        nodes,
-                        bundled,
-                        &path,
-                        child_id,
-                        depth + 1,
-                        enabled_simplification
-                    )
-                )
-                .unwrap();
-            }
         }
-
-        for _ in 0..depth {
-            write!(s, "    ").unwrap();
-        }
-        writeln!(s, "}}").unwrap();
-
-        s
     }
 
-    let mut res = String::new();
-    res += "#[allow(dead_code)]\n";
-    res += &dfs(
-        library_name,
-        &tree.nodes,
-        &mut vec![false; tree.nodes.len()],
-        &PathBuf::new(),
-        0,
-        0,
-        enabled_simplification,
-    );
+    for _ in 0..depth {
+        write!(s, "    ").unwrap();
+    }
+    writeln!(s, "}}").unwrap();
 
-    res
+    s
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]

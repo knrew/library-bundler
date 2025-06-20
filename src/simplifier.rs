@@ -4,18 +4,15 @@ use std::{
     path::Path,
 };
 
+use crate::BundlingOption;
+
 /// ライブラリファイルの
 /// - コメント削除
 /// - テスト削除
 /// - 空行削除
 /// - インデント挿入
 /// を行う
-pub fn simplify(
-    file: impl AsRef<Path>,
-    library_name: &str,
-    indent_depth: usize,
-    enable_simplification: bool,
-) -> String {
+pub fn simplify(option: &BundlingOption, file: impl AsRef<Path>, indent_depth: usize) -> String {
     let reader = BufReader::new(File::open(file).expect("could not open file."));
 
     let mut lines = reader
@@ -23,7 +20,7 @@ pub fn simplify(
         .map(|line| line.unwrap())
         .collect::<Vec<String>>();
 
-    if enable_simplification {
+    if option.enabled_simplification {
         {
             let mut is_in_comment = false;
             for line in &mut lines {
@@ -60,7 +57,7 @@ pub fn simplify(
         for _ in 0..indent_depth {
             res += "    ";
         }
-        res += &line.replace("crate", &format!("crate::{}", library_name));
+        res += &line.replace("crate", &format!("crate::{}", option.library_name));
         res += "\n";
     }
 

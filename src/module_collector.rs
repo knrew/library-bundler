@@ -1,31 +1,23 @@
-use std::{
-    collections::BTreeSet,
-    fs,
-    path::{Path, PathBuf},
-};
+use std::{collections::BTreeSet, fs, path::PathBuf};
 
 use syn::{parse_file, Item, UseTree};
 
+use crate::BundlingOption;
+
 /// sourceファイルでuseされているモジュールのうち，
 /// バンドルするライブラリであるものを再帰的に集める
-pub fn collect_library_uses(
-    source_path: impl AsRef<Path>,
-    library_dir: impl AsRef<Path>,
-    library_name: &str,
-) -> Vec<Vec<PathBuf>> {
-    let library_dir = library_dir.as_ref();
-
+pub fn collect_library_uses(option: &BundlingOption) -> Vec<Vec<PathBuf>> {
     let mut modules = BTreeSet::new();
 
     // useをさがす対象となるファイル
-    let mut targets = vec![source_path.as_ref().to_path_buf()];
+    let mut targets = vec![option.souce_file.clone()];
 
     while let Some(p) = targets.pop() {
         let source = fs::read_to_string(&p).expect("failed to read file.");
 
         for u in collect_uses(&source) {
             match u.get(0) {
-                Some(s) if s == library_name => {}
+                Some(s) if s == &option.library_name => {}
                 Some(s) if s == "crate" => {}
                 Some(s) if s == "super" => {
                     unimplemented!();
@@ -36,7 +28,7 @@ pub fn collect_library_uses(
             }
 
             let mut module = vec![];
-            let mut path = library_dir.join("src");
+            let mut path = option.library_dir.join("src");
 
             for s in u.into_iter().skip(1) {
                 path = path.join(&s);
