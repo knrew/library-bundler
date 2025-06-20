@@ -50,17 +50,17 @@ pub fn collect_all_uses(option: &BundlingOption) -> Vec<Vec<PathBuf>> {
 fn collect_uses(source: &str) -> Vec<Vec<String>> {
     fn dfs(tree: &UseTree, uses: &mut Vec<Vec<String>>, current: &mut Vec<String>) {
         match tree {
-            UseTree::Path(ref path) => {
+            UseTree::Path(path) => {
                 current.push(path.ident.to_string());
                 dfs(&path.tree, uses, current);
                 current.pop();
             }
-            UseTree::Name(ref name) => {
+            UseTree::Name(name) => {
                 current.push(name.ident.to_string());
                 uses.push(current.clone());
                 current.pop();
             }
-            UseTree::Rename(ref rename) => {
+            UseTree::Rename(rename) => {
                 current.push(rename.rename.to_string());
                 uses.push(current.clone());
                 current.pop();
@@ -70,7 +70,7 @@ fn collect_uses(source: &str) -> Vec<Vec<String>> {
                 uses.push(current.clone());
                 current.pop();
             }
-            UseTree::Group(ref group) => {
+            UseTree::Group(group) => {
                 for item in &group.items {
                     dfs(item, uses, current);
                 }
