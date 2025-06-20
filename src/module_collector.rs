@@ -2,14 +2,11 @@ use std::{collections::BTreeSet, fs, path::PathBuf};
 
 use syn::{parse_file, Item, UseTree};
 
-use crate::BundlingOption;
+use crate::bundling_option::BundlingOption;
 
-/// sourceファイルでuseされているモジュールのうち，
-/// バンドルするライブラリであるものを再帰的に集める
-pub fn collect_library_uses(option: &BundlingOption) -> Vec<Vec<PathBuf>> {
+pub fn collect_all_uses(option: &BundlingOption) -> Vec<Vec<PathBuf>> {
     let mut modules = BTreeSet::new();
 
-    // useをさがす対象となるファイル
     let mut targets = vec![option.souce_file.clone()];
 
     while let Some(p) = targets.pop() {
@@ -39,11 +36,8 @@ pub fn collect_library_uses(option: &BundlingOption) -> Vec<Vec<PathBuf>> {
                 }
             }
 
-            if path.is_file() {
-                if !modules.contains(&module) {
-                    modules.insert(module);
-                    targets.push(path);
-                }
+            if path.is_file() && modules.insert(module) {
+                targets.push(path);
             }
         }
     }
@@ -51,8 +45,8 @@ pub fn collect_library_uses(option: &BundlingOption) -> Vec<Vec<PathBuf>> {
     modules.into_iter().collect()
 }
 
-/// sourceファイルでuseされているモジュールを集める
-/// 例: `use std::collections::HashMap`があれば`["std", "collections", "HashMap"]`という形で格納される
+/// ファイル内でuseされているモジュールを集める．
+/// 例: `use std::collections::HashMap`があれば`["std", "collections", "HashMap"]`という形で格納される．
 fn collect_uses(source: &str) -> Vec<Vec<String>> {
     fn dfs(tree: &UseTree, uses: &mut Vec<Vec<String>>, current: &mut Vec<String>) {
         match tree {

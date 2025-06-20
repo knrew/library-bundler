@@ -1,7 +1,5 @@
-use library_bundler::{bundle, bundling_option::BundlingOption};
+use library_bundler::bundle;
 
 fn main() {
-    let option = BundlingOption::new();
-    let bundled_source = bundle(&option);
-    print!("{}", bundled_source);
+    print!("{}", bundle());
 }
