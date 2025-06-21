@@ -22,7 +22,9 @@ pub fn bundle() -> String {
 
     let mut res = fs::read_to_string(&option.souce_file).unwrap();
 
-    if tree.len() == 0 {
+    let module = traverse_tree(&option, &tree, 0, !0, PathBuf::new(), 0);
+
+    if module.is_empty() {
         return res;
     }
 
@@ -31,14 +33,9 @@ pub fn bundle() -> String {
     for line in option.comment.lines() {
         writeln!(&mut res, "/// {}", line).unwrap();
     }
-
     writeln!(&mut res, "#[allow(unused)]").unwrap();
-    write!(
-        &mut res,
-        "{}",
-        traverse_tree(&option, &tree, 0, !0, PathBuf::new(), 0)
-    )
-    .unwrap();
+
+    write!(&mut res, "{}", module).unwrap();
 
     res
 }
@@ -66,16 +63,18 @@ fn traverse_tree(
     if tree.childs(id).is_empty() {
         let path = path.with_extension("rs");
 
-        let mut source = fs::read_to_string(path).unwrap();
-        if option.enabled_simplification {
-            source = simplify(source)
-        }
+        if id != 0 {
+            let mut source = fs::read_to_string(path).unwrap();
+            if option.enabled_simplification {
+                source = simplify(source)
+            }
 
-        source = source.replace("crate", &format!("crate::{}", option.library_name));
+            source = source.replace("crate", &format!("crate::{}", option.library_name));
 
-        for line in source.lines() {
-            insert_indent(&mut res, depth + 1);
-            writeln!(res, "{}", line).unwrap();
+            for line in source.lines() {
+                insert_indent(&mut res, depth + 1);
+                writeln!(res, "{}", line).unwrap();
+            }
         }
     }
 
