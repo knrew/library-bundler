@@ -1,9 +1,8 @@
-/// ライブラリファイルの
+/// ライブラリファイルに対して以下の操作を行う．
 /// - コメント削除
 /// - テスト削除
 /// - 空行削除
 /// - インデント挿入
-/// を行う
 pub fn simplify(source: String) -> String {
     let mut res = vec![];
 
@@ -13,12 +12,12 @@ pub fn simplify(source: String) -> String {
         let mut line = line.to_string();
 
         if is_in_comment {
-            if line.find("*/").is_some() {
+            if line.contains("*/") {
                 is_in_comment = false;
             }
             line.clear();
         } else {
-            if let Some(_) = line.find("/*") {
+            if line.contains("/*") {
                 is_in_comment = true;
                 line.clear();
             }
@@ -27,7 +26,7 @@ pub fn simplify(source: String) -> String {
             }
         }
 
-        if line.find("#[test]").is_some() || line.find("#[cfg(test)]").is_some() {
+        if line.contains("#[test]") || line.contains("#[cfg(test)]") {
             break;
         }
 

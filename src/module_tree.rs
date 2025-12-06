@@ -32,6 +32,10 @@ impl ModuleTree {
         self.nodes.len()
     }
 
+    pub fn is_empty(&self) -> bool {
+        self.len() == 0
+    }
+
     pub fn path(&self, index: usize) -> &PathBuf {
         &self.nodes[index].path
     }

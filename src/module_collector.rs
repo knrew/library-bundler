@@ -13,7 +13,7 @@ pub fn collect_all_uses(option: &BundlingOption) -> Vec<Vec<PathBuf>> {
         let source = fs::read_to_string(&p).expect("failed to read file.");
 
         for u in collect_uses(&source) {
-            match u.get(0) {
+            match u.first() {
                 Some(s) if s == &option.library_name => {}
                 Some(s) if s == "crate" => {}
                 Some(s) if s == "super" => {

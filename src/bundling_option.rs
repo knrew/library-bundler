@@ -30,7 +30,7 @@ impl BundlingOption {
             .or_else(|| Some(args.library_dir.file_name()?.to_str()?.to_string()))
             .unwrap();
 
-        let comment = args.comment.unwrap_or_else(|| String::new());
+        let comment = args.comment.unwrap_or_else(String::new);
 
         BundlingOption {
             library_name,
@@ -39,6 +39,12 @@ impl BundlingOption {
             comment,
             enabled_simplification: !args.disabled_simplification,
         }
+    }
+}
+
+impl Default for BundlingOption {
+    fn default() -> Self {
+        Self::new()
     }
 }
 
