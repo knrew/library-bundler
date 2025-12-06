@@ -5,13 +5,15 @@ pub mod simplifier;
 
 use std::{fmt::Write, fs, path::PathBuf};
 
+use anyhow::{Context, Result};
+
 use module_collector::collect_all_uses;
 use simplifier::simplify;
 
 use crate::{bundling_option::BundlingOption, module_tree::ModuleTree};
 
-pub fn bundle() -> String {
-    let option = BundlingOption::new();
+pub fn bundle() -> Result<String> {
+    let option = BundlingOption::new()?;
 
     let mut tree = ModuleTree::new(option.library_dir.join("src"));
 
@@ -20,23 +22,23 @@ pub fn bundle() -> String {
         tree.insert(&u);
     }
 
-    let mut res = fs::read_to_string(&option.souce_file).unwrap();
+    let mut res = fs::read_to_string(&option.souce_file)?;
 
     if tree.len() <= 1 {
-        return res;
+        return Ok(res);
     }
 
-    writeln!(&mut res).unwrap();
+    writeln!(&mut res)?;
 
     for line in option.comment.lines() {
-        writeln!(&mut res, "/// {}", line).unwrap();
+        writeln!(&mut res, "/// {}", line)?;
     }
-    writeln!(&mut res, "#[allow(unused)]").unwrap();
+    writeln!(&mut res, "#[allow(unused)]")?;
 
-    let module = traverse_tree(&option, &tree, 0, !0, PathBuf::new(), 0);
-    write!(&mut res, "{}", module).unwrap();
+    let module = traverse_tree(&option, &tree, 0, !0, PathBuf::new(), 0)?;
+    write!(&mut res, "{}", module)?;
 
-    res
+    Ok(res)
 }
 
 fn traverse_tree(
@@ -46,7 +48,7 @@ fn traverse_tree(
     prev_id: usize,
     path: PathBuf,
     depth: usize,
-) -> String {
+) -> Result<String> {
     let mut res = String::new();
 
     let path = path.join(tree.path(id));
@@ -54,16 +56,18 @@ fn traverse_tree(
     let mod_name = if id == 0 {
         &option.library_name
     } else {
-        tree.path(id).to_str().unwrap()
+        tree.path(id)
+            .to_str()
+            .context("failed to convert tree path to str")?
     };
-    insert_indent(&mut res, depth);
-    writeln!(res, "pub mod {} {{", mod_name).unwrap();
+    insert_indent(&mut res, depth)?;
+    writeln!(res, "pub mod {} {{", mod_name)?;
 
     if tree.childs(id).is_empty() {
         let path = path.with_extension("rs");
 
         if id != 0 {
-            let mut source = fs::read_to_string(path).unwrap();
+            let mut source = fs::read_to_string(path)?;
             if option.enabled_simplification {
                 source = simplify(source)
             }
@@ -71,8 +75,8 @@ fn traverse_tree(
             source = source.replace("crate", &format!("crate::{}", option.library_name));
 
             for line in source.lines() {
-                insert_indent(&mut res, depth + 1);
-                writeln!(res, "{}", line).unwrap();
+                insert_indent(&mut res, depth + 1)?;
+                writeln!(res, "{}", line)?;
             }
         }
     }
@@ -85,19 +89,19 @@ fn traverse_tree(
         write!(
             res,
             "{}",
-            traverse_tree(option, tree, next_id, id, path.clone(), depth + 1)
-        )
-        .unwrap();
+            traverse_tree(option, tree, next_id, id, path.clone(), depth + 1)?
+        )?;
     }
 
-    insert_indent(&mut res, depth);
-    writeln!(res, "}}").unwrap();
+    insert_indent(&mut res, depth)?;
+    writeln!(res, "}}")?;
 
-    res
+    Ok(res)
 }
 
-fn insert_indent(s: &mut String, depth: usize) {
+fn insert_indent(s: &mut String, depth: usize) -> Result<()> {
     for _ in 0..depth {
-        write!(s, "    ").unwrap();
+        write!(s, "    ")?;
     }
+    Ok(())
 }

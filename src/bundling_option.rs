@@ -1,5 +1,6 @@
 use std::path::PathBuf;
 
+use anyhow::{Context, Result};
 use clap::Parser;
 
 #[derive(Debug, Clone)]
@@ -22,29 +23,23 @@ pub struct BundlingOption {
 }
 
 impl BundlingOption {
-    pub fn new() -> Self {
+    pub fn new() -> Result<Self> {
         let args = Args::parse();
 
         let library_name = args
             .library_name
             .or_else(|| Some(args.library_dir.file_name()?.to_str()?.to_string()))
-            .unwrap();
+            .context("failed to specify library_name.")?;
 
         let comment = args.comment.unwrap_or_else(String::new);
 
-        BundlingOption {
+        Ok(BundlingOption {
             library_name,
             library_dir: args.library_dir,
             souce_file: args.source_file,
             comment,
             enabled_simplification: !args.disabled_simplification,
-        }
-    }
-}
-
-impl Default for BundlingOption {
-    fn default() -> Self {
-        Self::new()
+        })
     }
 }
 
