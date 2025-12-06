@@ -1,9 +1,8 @@
 [package]
-name = "library-bundler"
-version = "0.1.0"
 edition = "2021"
+name    = "library-bundler"
+version = "0.1.0"
 
 [dependencies]
-clap = { version = "4.5.20", features = ["derive"] }
-syn = { version = "2.0.79", features = ["full"] }
-
+clap = {features = ["derive"], version = "4.5.20"}
+syn  = {features = ["full"], version = "2.0.79"}
