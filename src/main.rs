@@ -1,4 +1,4 @@
-use library_bundler::bundle;
+use reprack::bundle;
 
 use anyhow::Result;
 
