@@ -1,5 +1,8 @@
-use library_bundler::bundle;
+use reprack::bundle;
 
-fn main() {
-    print!("{}", bundle());
+use anyhow::Result;
+
+fn main() -> Result<()> {
+    print!("{}", bundle()?);
+    Ok(())
 }
