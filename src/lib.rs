@@ -22,9 +22,7 @@ pub fn bundle() -> String {
 
     let mut res = fs::read_to_string(&option.souce_file).unwrap();
 
-    let module = traverse_tree(&option, &tree, 0, !0, PathBuf::new(), 0);
-
-    if module.is_empty() {
+    if tree.len() <= 1 {
         return res;
     }
 
@@ -35,6 +33,7 @@ pub fn bundle() -> String {
     }
     writeln!(&mut res, "#[allow(unused)]").unwrap();
 
+    let module = traverse_tree(&option, &tree, 0, !0, PathBuf::new(), 0);
     write!(&mut res, "{}", module).unwrap();
 
     res
