@@ -3,7 +3,7 @@ authors     = ["knrew"]
 description = "A library bundler for competitive programming, mainly targeting AtCoder."
 edition     = "2024"
 license     = "MIT"
-name        = "library-bundler"
+name        = "reprack"
 version     = "0.1.0"
 
 [dependencies]
