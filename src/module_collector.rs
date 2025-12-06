@@ -1,6 +1,6 @@
 use std::{collections::BTreeSet, fs, path::PathBuf};
 
-use syn::{parse_file, Item, UseTree};
+use syn::{Item, UseTree, parse_file};
 
 use crate::bundling_option::BundlingOption;
 

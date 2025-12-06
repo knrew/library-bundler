@@ -1,7 +1,10 @@
 [package]
-edition = "2021"
-name    = "library-bundler"
-version = "0.1.0"
+authors     = ["knrew"]
+description = ""
+edition     = "2024"
+license     = "MIT"
+name        = "library-bundler"
+version     = "0.1.0"
 
 [dependencies]
 clap = {features = ["derive"], version = "4.5.20"}
